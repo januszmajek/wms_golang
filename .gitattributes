@@ -1,0 +1,14 @@
+# Normalize all text to lf in the repo
+* text=auto eol=lf
+
+# Examples for specific file types (optional)
+*.bat text=auto eol=lf
+*.cmd text=auto eol=lf
+*.sh text=auto eol=lf
+*.ps1 text=auto eol=lf
+
+# Keep these as-is (binary)
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary

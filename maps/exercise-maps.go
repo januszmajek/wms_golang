@@ -5,12 +5,11 @@
 	W tym ćwiczeniu może okazać się pomocne zapoznanie się z funkcją strings.Fields.
 */
 
-package main
+package maps
 
 import (
 	"strings"
 )
-
 
 func WordCount(s string) map[string]int {
 	words := strings.Fields(s)

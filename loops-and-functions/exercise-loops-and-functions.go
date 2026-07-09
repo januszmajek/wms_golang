@@ -1,4 +1,4 @@
-package main
+package loops_and_functions
 
 import (
 	"math"
@@ -12,7 +12,3 @@ func Sqrt(x float64) float64 {
 	}
 	return z
 }
-
-// func main() {
-// 	fmt.Println(Sqrt(2))
-// }

@@ -1,15 +1,13 @@
-package main
-
-// import "fmt"
+package fibonacci
 
 /*
 	Pobawmy się trochę funkcjami.
 	Zaimplementuj funkcję fibonacci która zwróci funkcję (domknięcie) która zwraca ciąg liczby Fibonacciego (0, 1, 1, 2, 3, 5, ...).
- */
+*/
 
 // fibonacci to funkcja która zwraca
 // funkcję która zwraca int.
-func fibonacci() func() int {
+func Fibonacci() func() int {
 	numbers := []int{0}
 
 	return func() int {
@@ -31,7 +29,7 @@ func fibonacci() func() int {
 	}
 }
 
-/* 
+/*
 	bardziej eleganckie
 func fibonacci() func() int {
 	a, b := 0, 1
@@ -43,10 +41,3 @@ func fibonacci() func() int {
 	}
 }
 */
-
-// func main() {
-// 	f := fibonacci()
-// 	for i := 0; i < 10; i++ {
-// 		fmt.Println(f())
-// 	}
-// }

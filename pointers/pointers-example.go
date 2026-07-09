@@ -1,8 +1,8 @@
-package main
+package pointers
 
 // import "fmt"
 
-// func main() {
+// func Pointers() {
 // 	i, j := 42, 2701
 
 // 	p := &i         // wkaźnik do i

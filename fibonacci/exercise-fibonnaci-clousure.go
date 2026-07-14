@@ -1,11 +1,11 @@
+/*
+	  Package fibonacci provides Fibonacci sequence generators.
+		Pobawmy się trochę funkcjami.
+		Zaimplementuj funkcję fibonacci która zwróci funkcję (domknięcie) która zwraca ciąg liczby Fibonacciego (0, 1, 1, 2, 3, 5, ...).
+*/
 package fibonacci
 
-/*
-	Pobawmy się trochę funkcjami.
-	Zaimplementuj funkcję fibonacci która zwróci funkcję (domknięcie) która zwraca ciąg liczby Fibonacciego (0, 1, 1, 2, 3, 5, ...).
-*/
-
-// fibonacci to funkcja która zwraca
+// Fibonacci to funkcja która zwraca
 // funkcję która zwraca int.
 func Fibonacci() func() int {
 	numbers := []int{0}

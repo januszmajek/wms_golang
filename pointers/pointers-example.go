@@ -1,3 +1,4 @@
+// Package pointers
 package pointers
 
 // import "fmt"

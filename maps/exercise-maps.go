@@ -1,16 +1,16 @@
 /*
-	Zaimplementuj WordCount. Program powinien zwrócić mapę która policzy ilość wystąpień każdego "wyrazu" w stringu s.
- 	Funkcja wc.Test uruchamia test twojej funkcji i wypisuje na ekranie "success" (pl. sukces) lub "failure" (pl. porażka).
+Package maps
+Zaimplementuj WordCount. Program powinien zwrócić mapę która policzy ilość wystąpień każdego "wyrazu" w stringu s.
 
-	W tym ćwiczeniu może okazać się pomocne zapoznanie się z funkcją strings.Fields.
+W tym ćwiczeniu może okazać się pomocne zapoznanie się z funkcją strings.Fields.
 */
-
 package maps
 
 import (
 	"strings"
 )
 
+// WordCount I have to proide comment i guess
 func WordCount(s string) map[string]int {
 	words := strings.Fields(s)
 	counts := make(map[string]int)

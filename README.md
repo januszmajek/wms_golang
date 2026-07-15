@@ -62,7 +62,7 @@ HTTP handlers -> Services -> Repositories -> DB
 
 ## Main Use Cases
 
-1. **Product Mgmt**: Create/list products (e.g. SKU `GLASS-001`).
+1. **Product Mgmt**: Create/list products (e.g. article code `GLASS-001`).
 2. **Inbound**: Add stock (increases product quantity).
 3. **Stock Report**: Get all current inventory.
 4. **Order Creation**: Creates `CREATED` order if stock is sufficient. No stock decrease.
@@ -77,26 +77,13 @@ HTTP handlers -> Services -> Repositories -> DB
 
 ---
 
-## Database Model
-
-```sql
-CREATE TABLE products (id BIGSERIAL PRIMARY KEY, sku TEXT NOT NULL UNIQUE, name TEXT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT NOW());
-CREATE TABLE stock (product_id BIGINT PRIMARY KEY REFERENCES products(id), quantity INTEGER NOT NULL CHECK (quantity >= 0), updated_at TIMESTAMP NOT NULL DEFAULT NOW());
-CREATE TABLE inbound_operations (id BIGSERIAL PRIMARY KEY, product_id BIGINT NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL CHECK (quantity > 0), created_at TIMESTAMP NOT NULL DEFAULT NOW());
-CREATE TABLE orders (id BIGSERIAL PRIMARY KEY, status TEXT NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT NOW(), shipped_at TIMESTAMP NULL);
-CREATE TABLE order_items (id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT NULL REFERENCES orders(id), product_id BIGINT NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL CHECK (quantity > 0));
-CREATE TABLE outbound_operations (id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT NULL UNIQUE REFERENCES orders(id), created_at TIMESTAMP NOT NULL DEFAULT NOW());
-```
-
----
-
 ## API Endpoints
 
 - **Health Check**: `GET /health` -> `{"status":"ok"}`
-- **Create Product**: `POST /products` `{"sku":"GLASS-001","name":"Glass"}` -> `{"id":1,...}`
+- **Create Product**: `POST /products` `{"article_code":"GLASS-001","name":"Glass"}` -> `{"id":1,...}`
 - **List Products**: `GET /products` -> `[{"id":1,...}]`
 - **Inbound**: `POST /inbounds` `{"product_id":1,"quantity":10}` -> `{"product_id":1,"quantity_added":10}`
-- **Stock Report**: `GET /stock` -> `[{"product_id":1,"sku":"GLASS-001","name":"Glass","quantity":10}]`
+- **Stock Report**: `GET /stock` -> `[{"product_id":1,"article_code":"GLASS-001","name":"Glass","quantity":10}]`
 - **Create Order**: `POST /orders` `{"items":[{"product_id":1,"quantity":4}],"comment":null}` -> `{"id":1,"status":"CREATED",...}` (400 if insufficient)
 - **Get Order**: `GET /orders/:id` -> `{"id":1,...}`
 - **Ship Order**: `POST /orders/:id/ship` -> `{"order_id":1,"status":"SHIPPED"}` (errors: already shipped, stock changed)
@@ -105,40 +92,99 @@ CREATE TABLE outbound_operations (id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT 
 
 ## Demo Flow
 
+### 1. Create product
 ```bash
-# 1. Create product
-curl -X POST http://localhost:8080/products -H "Content-Type: application/json" -d '{"sku":"GLASS-001","name":"Glass"}'
-
-# 2. Add stock (10)
-curl -X POST http://localhost:8080/inbounds -H "Content-Type: application/json" -d '{"product_id":1,"quantity":10}'
-
-# 3. Check stock
-curl http://localhost:8080/stock
-
-# 4. Create order (4)
-curl -X POST http://localhost:8080/orders -H "Content-Type: application/json" -d '{"items":[{"product_id":1,"quantity":4}]}'
-
-# 5. Ship order (marks SHIPPED, stock decreases from 10 to 6)
-curl -X POST http://localhost:8080/orders/1/ship
-
-# 6. Check stock again
-curl http://localhost:8080/stock
-
-# 7. Try to order > stock (fails)
-curl -X POST http://localhost:8080/orders -H "Content-Type: application/json" -d '{"items":[{"product_id":1,"quantity":20}]}'
+curl -X POST http://localhost:8081/products -H "Content-Type: application/json" -d '{"article_code":"GLASS-001","name":"Glass"}'
+```
+### 2. Add stock (10)
+```bash
+curl -X POST http://localhost:8081/inbounds -H "Content-Type: application/json" -d '{"product_id":1,"quantity":10}'
+````
+### 3. Check stock
+```bash
+curl http://localhost:8081/stock
+```
+### 4. Create order (4)
+```bash
+curl -X POST http://localhost:8081/orders -H "Content-Type: application/json" -d '{"items":[{"product_id":1,"quantity":4}]}'
+```
+### 5. Ship order (marks SHIPPED, stock decreases from 10 to 6)
+```bash
+curl -X POST http://localhost:8081/orders/1/ship
+```
+### 6. Check stock again
+```bash
+curl http://localhost:8081/stock
+```
+### 7. Try to order > stock (fails)
+```bash
+curl -X POST http://localhost:8081/orders -H "Content-Type: application/json" -d '{"items":[{"product_id":1,"quantity":20}]}'
 ```
 
----
+---~~~~
 
 ## Setup & Run
 
-1. **Clone**: `git clone <url> && cd mini-wms`
+### Quick Start (local)
+
+```bash
+podman machine start podman-machine-default
+```
+
+[//]: # (```bash)
+
+[//]: # (podman system connection default podman-machine-default)
+
+[//]: # (```)
+
+```bash
+podman start mini_wms_postgres
+```
+
+[//]: # ()
+[//]: # (```bash)
+
+[//]: # (podman stop mini_wms_postgres)
+
+[//]: # (```)
+
+```bash
+podman ps
+```
+
+```bash
+go run ./cmd/api
+```
+
+Open health check: `http://localhost:8081/health`
+
+### Migration:
+
+```bash
+goose -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" up
+```
+
+```bash
+goose -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" down
+```
+
+- Run `up` when setting up a fresh local DB.
+- Run `up` again only when new migration files are added (safe to re-run; applied versions are tracked).
+- You do not need to run migrations before every app start if nothing changed.
+
+### Load Seed
+```bash
+podman exec -i mini_wms_postgres psql -U postgres -d mini_wms < seeds/seed_dev.sql
+```
+
+### Start db from clean start
+
 2. **Start Podman machine**: `podman machine start podman-machine-default`
 3. **Set Podman connection**: `podman system connection default podman-machine-default`
 4. **Start DB container**: `podman start mini_wms_postgres`
 5. **Verify DB is running**: `podman ps`
-6. **Migrate**: `goose -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" up`
-7. **Run**: `go run ./cmd/api` (listens at `http://localhost:8080`)
+6. **Migrate**: `go run github.com/pressly/goose/v3/cmd/goose@latest -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" up`
+7. **Run**: `go run ./cmd/api` (listens at `http://localhost:8081`)
 
 If the DB container does not exist yet, create it:
 
@@ -186,7 +232,7 @@ If Podman Desktop does not show the container but `podman ps` does, the CLI mach
 ## Env Variables (`.env.example`)
 
 ```env
-APP_PORT=8080
+APP_PORT=8081
 DATABASE_URL=postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable
 ```
 
@@ -194,9 +240,9 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disabl
 
 ## Migrations (goose)
 
-- **Create**: `goose -dir migrations create <name> sql`
-- **Apply**: `goose -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" up`
-- **Rollback**: `goose -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" down`
+- **Create**: `go run github.com/pressly/goose/v3/cmd/goose@latest -dir migrations create <name> sql`
+- **Apply**: `go run github.com/pressly/goose/v3/cmd/goose@latest -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" up`
+- **Rollback**: `go run github.com/pressly/goose/v3/cmd/goose@latest -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" down`
 
 ---
 
@@ -256,9 +302,3 @@ Frontend, user accounts, auth, categories, reservations, partial shipments, orde
 ## Assignment Coverage
 
 Covers inbound stock, orders validation, outbound shipment, inventory report, PostgreSQL persistence, goose migrations, OpenAPI/JSON Schema specifications, structured logging, nullable request fields, and unit tests with >50% coverage.
-
----
-
-## Demo Scenario
-
-Podman Postgres container up -> Run goose migrations -> Start API -> Create product GLASS-001 -> Inbound qty 10 -> Check stock (10) -> Create order qty 4 -> Ship order -> Check stock (6) -> Create order qty 20 (fails) -> Run tests with coverage.

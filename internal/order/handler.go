@@ -29,7 +29,11 @@ func (h *Handler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, o)
 }
 func (h *Handler) Get(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id must be a positive integer"})
+		return
+	}
 	o, err := h.Service.Get(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -38,7 +42,11 @@ func (h *Handler) Get(c *gin.Context) {
 	c.JSON(http.StatusOK, o)
 }
 func (h *Handler) Ship(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := parseID(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id must be a positive integer"})
+		return
+	}
 	resp, err := h.Service.Ship(id)
 	if errors.Is(err, ErrAlreadyShipped) || errors.Is(err, ErrInsufficientStock) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -49,4 +57,12 @@ func (h *Handler) Ship(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, resp)
+}
+
+func parseID(value string) (int64, error) {
+	id, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || id <= 0 {
+		return 0, errors.New("invalid id")
+	}
+	return id, nil
 }

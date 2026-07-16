@@ -4,12 +4,6 @@ import (
 	"database/sql"
 )
 
-type RepositoryInterface interface {
-	ProductExists(productID int64) (bool, error)
-	AddInbound(productID int64, quantity int) error
-	Report() ([]ReportItem, error)
-}
-
 type Repository struct{ DB *sql.DB }
 
 func NewRepository(db *sql.DB) *Repository { return &Repository{DB: db} }

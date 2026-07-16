@@ -29,6 +29,15 @@ func main() {
 	stockHandler := stock.NewHandler(stock.NewService(stockRepo))
 	orderHandler := order.NewHandler(order.NewService(orderRepo))
 
+	r := newRouter(productHandler, stockHandler, orderHandler)
+
+	log.Println("mini wms running on port", cfg.AppPort)
+	if err := r.Run(":" + cfg.AppPort); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func newRouter(productHandler *product.Handler, stockHandler *stock.Handler, orderHandler *order.Handler) *gin.Engine {
 	r := gin.Default()
 	r.GET("/health", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"status": "ok"}) })
 	r.GET("/stock", stockHandler.Report)
@@ -39,8 +48,5 @@ func main() {
 	r.POST("/orders", orderHandler.Create)
 	r.POST("/orders/:id/ship", orderHandler.Ship)
 
-	log.Println("mini wms running on port", cfg.AppPort)
-	if err := r.Run(":" + cfg.AppPort); err != nil {
-		log.Fatal(err)
-	}
+	return r
 }

@@ -5,13 +5,6 @@ import (
 	"errors"
 )
 
-type RepositoryInterface interface {
-	GetStock(productID int64) (int, error)
-	Create(items []OrderItem) (Order, error)
-	Get(id int64) (Order, error)
-	Ship(id int64) error
-}
-
 type Repository struct{ DB *sql.DB }
 
 func NewRepository(db *sql.DB) *Repository { return &Repository{DB: db} }

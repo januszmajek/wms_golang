@@ -1,6 +1,7 @@
 package order
 
 import (
+	"errors"
 	"testing"
 	"time"
 )
@@ -10,20 +11,32 @@ type fakeOrderRepo struct {
 	orders       map[int64]Order
 	shipped      map[int64]bool
 	createdItems []OrderItem
+	getStockErr  error
+	createErr    error
+	getErr       error
+	shipErr      error
 }
 
 func newFakeOrderRepo() *fakeOrderRepo {
 	return &fakeOrderRepo{stock: map[int64]int{}, orders: map[int64]Order{}, shipped: map[int64]bool{}}
 }
-func (f *fakeOrderRepo) GetStock(productID int64) (int, error) { return f.stock[productID], nil }
+func (f *fakeOrderRepo) GetStock(productID int64) (int, error) {
+	return f.stock[productID], f.getStockErr
+}
 func (f *fakeOrderRepo) Create(items []OrderItem) (Order, error) {
+	if f.createErr != nil {
+		return Order{}, f.createErr
+	}
 	f.createdItems = items
 	o := Order{ID: 1, Status: StatusCreated, CreatedAt: time.Now(), Items: items}
 	f.orders[1] = o
 	return o, nil
 }
-func (f *fakeOrderRepo) Get(id int64) (Order, error) { return f.orders[id], nil }
+func (f *fakeOrderRepo) Get(id int64) (Order, error) { return f.orders[id], f.getErr }
 func (f *fakeOrderRepo) Ship(id int64) error {
+	if f.shipErr != nil {
+		return f.shipErr
+	}
 	if f.shipped[id] {
 		return ErrAlreadyShipped
 	}
@@ -125,5 +138,52 @@ func TestShipOrderFailsIfStockDropped(t *testing.T) {
 	_, err := service.Ship(1)
 	if err != ErrInsufficientStock {
 		t.Fatalf("wanted insufficient stock got %v", err)
+	}
+}
+
+func TestCreateOrderReturnsStockLookupError(t *testing.T) {
+	wantErr := errors.New("stock lookup failed")
+	repo := newFakeOrderRepo()
+	repo.getStockErr = wantErr
+
+	_, err := NewService(repo).Create(CreateOrderRequest{Items: []ItemRequest{{ProductID: 1, Quantity: 1}}})
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("wanted stock lookup error, got %v", err)
+	}
+}
+
+func TestCreateOrderReturnsCreateError(t *testing.T) {
+	wantErr := errors.New("create failed")
+	repo := newFakeOrderRepo()
+	repo.stock[1] = 1
+	repo.createErr = wantErr
+
+	_, err := NewService(repo).Create(CreateOrderRequest{Items: []ItemRequest{{ProductID: 1, Quantity: 1}}})
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("wanted create error, got %v", err)
+	}
+}
+
+func TestGetOrder(t *testing.T) {
+	repo := newFakeOrderRepo()
+	repo.orders[7] = Order{ID: 7, Status: StatusCreated}
+
+	got, err := NewService(repo).Get(7)
+	if err != nil {
+		t.Fatalf("get order: %v", err)
+	}
+	if got.ID != 7 {
+		t.Fatalf("unexpected order: %#v", got)
+	}
+}
+
+func TestShipReturnsRepositoryError(t *testing.T) {
+	wantErr := errors.New("ship failed")
+	repo := newFakeOrderRepo()
+	repo.shipErr = wantErr
+
+	_, err := NewService(repo).Ship(1)
+	if !errors.Is(err, wantErr) {
+		t.Fatalf("wanted ship error, got %v", err)
 	}
 }

@@ -2,14 +2,26 @@ package order
 
 import "errors"
 
-var ErrEmptyOrder = errors.New("order needs at least one item")
-var ErrBadItemQuantity = errors.New("item quantity must be bigger than 0")
-var ErrInsufficientStock = errors.New("insufficient stock")
-var ErrAlreadyShipped = errors.New("order already shipped")
+var (
+	ErrEmptyOrder        = errors.New("order needs at least one item")
+	ErrBadItemQuantity   = errors.New("item quantity must be bigger than 0")
+	ErrInsufficientStock = errors.New("insufficient stock")
+	ErrAlreadyShipped    = errors.New("order already shipped")
+)
 
-type Service struct{ Repo RepositoryInterface }
+// Store is the only production interface in the application. The order service
+// uses several storage operations, so this boundary keeps its business rules
+// testable without a database.
+type Store interface {
+	GetStock(productID int64) (int, error)
+	Create(items []OrderItem) (Order, error)
+	Get(id int64) (Order, error)
+	Ship(id int64) error
+}
 
-func NewService(repo RepositoryInterface) *Service { return &Service{Repo: repo} }
+type Service struct{ store Store }
+
+func NewService(store Store) *Service { return &Service{store: store} }
 
 func (s *Service) Create(req CreateOrderRequest) (Order, error) {
 	if len(req.Items) == 0 {
@@ -24,7 +36,7 @@ func (s *Service) Create(req CreateOrderRequest) (Order, error) {
 	}
 	var items []OrderItem
 	for productID, qty := range merged {
-		stock, err := s.Repo.GetStock(productID)
+		stock, err := s.store.GetStock(productID)
 		if err != nil {
 			return Order{}, err
 		}
@@ -33,11 +45,11 @@ func (s *Service) Create(req CreateOrderRequest) (Order, error) {
 		}
 		items = append(items, OrderItem{ProductID: productID, Quantity: qty})
 	}
-	return s.Repo.Create(items)
+	return s.store.Create(items)
 }
-func (s *Service) Get(id int64) (Order, error) { return s.Repo.Get(id) }
+func (s *Service) Get(id int64) (Order, error) { return s.store.Get(id) }
 func (s *Service) Ship(id int64) (ShipResponse, error) {
-	if err := s.Repo.Ship(id); err != nil {
+	if err := s.store.Ship(id); err != nil {
 		return ShipResponse{}, err
 	}
 	return ShipResponse{OrderID: id, Status: StatusShipped}, nil

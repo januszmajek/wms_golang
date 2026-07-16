@@ -19,7 +19,7 @@ An order is created with status `CREATED`. Creating an order does not decrease s
 - PostgreSQL 16
 - `database/sql` with `lib/pq`
 - SQL migrations in `migrations/001_init.sql`
-- Go's standard `testing` package with repository fakes
+- Go's standard `testing` package, small fakes, and `go-sqlmock`
 
 ## Prerequisites
 
@@ -104,8 +104,8 @@ All request and response bodies are JSON. Validation errors normally return HTTP
 | `POST` | `/inbounds` | Adds a positive `quantity` to an existing `product_id`. Returns `201`. |
 | `GET` | `/stock` | Lists every product and its current quantity. |
 | `POST` | `/orders` | Creates an order with a non-empty `items` array. Each item needs a positive `product_id` and `quantity`. Returns `201` with status `CREATED`. |
-| `GET` | `/orders/:id` | Returns an order and its items. Missing database IDs return `404`. |
-| `POST` | `/orders/:id/ship` | Re-checks stock, decreases it, and ships the order. Returns status `SHIPPED`. |
+| `GET` | `/orders/:id` | Returns an order and its items. The ID must be a positive integer; missing database IDs return `404`. |
+| `POST` | `/orders/:id/ship` | Re-checks stock, decreases it, and ships the order. The ID must be a positive integer. Returns status `SHIPPED`. |
 
 Example request bodies:
 
@@ -154,11 +154,14 @@ Run tests with coverage:
 
 ```powershell
 go test ./... -cover
-go test ./... -coverprofile=coverage.out
-go tool cover -html=coverage.out
+go test -coverprofile coverage.out ./...
+go tool cover -func coverage.out
+go tool cover -html coverage.out
 ```
 
-The service layer uses interfaces so business rules can be tested without PostgreSQL. Repository code is responsible for SQL and transactions; handlers are responsible for JSON binding, validation, and HTTP responses.
+Production code deliberately defines one interface: `order.Store` in `internal/order/service.go`. The order service uses it because order creation and shipping coordinate several storage operations and need focused business-rule tests. Product and stock code use concrete repositories directly; their tests use a mocked SQL connection. This keeps the project useful for learning when an interface helps instead of adding one for every struct.
+
+Repository code owns SQL and transactions. Services own warehouse rules. Handlers own JSON binding and HTTP responses. The test suite covers more than 50% of production statements.
 
 ## Project layout
 

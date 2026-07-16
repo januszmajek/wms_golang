@@ -177,6 +177,13 @@ docker-compose.yml            Local PostgreSQL service definition
 go.mod, go.sum                Go module metadata and dependencies
 ```
 
+## Podman
+
+```powershell
+podman machine start podman-machine-default 
+podman start mini_wms_postgres
+```
+
 ## Migrations
 
 Apply all pending migrations:

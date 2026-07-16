@@ -21,15 +21,11 @@ func main() {
 	}
 	defer database.Close()
 
-	productRepo := product.NewRepository(database)
-	stockRepo := stock.NewRepository(database)
-	orderRepo := order.NewRepository(database)
+	productDB := product.New(database)
+	stockDB := stock.New(database)
+	orderDB := order.New(database)
 
-	productHandler := product.NewHandler(productRepo)
-	stockHandler := stock.NewHandler(stock.NewService(stockRepo))
-	orderHandler := order.NewHandler(order.NewService(orderRepo))
-
-	r := newRouter(productHandler, stockHandler, orderHandler)
+	r := newRouter(productDB, stockDB, orderDB)
 
 	log.Println("mini wms running on port", cfg.AppPort)
 	if err := r.Run(":" + cfg.AppPort); err != nil {
@@ -37,16 +33,16 @@ func main() {
 	}
 }
 
-func newRouter(productHandler *product.Handler, stockHandler *stock.Handler, orderHandler *order.Handler) *gin.Engine {
+func newRouter(productDB *product.DB, stockDB *stock.DB, orderDB *order.DB) *gin.Engine {
 	r := gin.Default()
 	r.GET("/health", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"status": "ok"}) })
-	r.GET("/stock", stockHandler.Report)
-	r.GET("/products", productHandler.List)
-	r.GET("/orders/:id", orderHandler.Get)
-	r.POST("/products", productHandler.Create)
-	r.POST("/inbounds", stockHandler.Inbound)
-	r.POST("/orders", orderHandler.Create)
-	r.POST("/orders/:id/ship", orderHandler.Ship)
+	r.GET("/stock", stockDB.ReportHTTP)
+	r.GET("/products", productDB.List)
+	r.GET("/orders/:id", orderDB.Get)
+	r.POST("/products", productDB.Create)
+	r.POST("/inbounds", stockDB.Inbound)
+	r.POST("/orders", orderDB.Create)
+	r.POST("/orders/:id/ship", orderDB.Ship)
 
 	return r
 }

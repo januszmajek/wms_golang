@@ -15,9 +15,9 @@ import (
 func TestRouterHealthAndRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := newRouter(
-		product.NewHandler(nil),
-		stock.NewHandler(nil),
-		order.NewHandler(nil),
+		&product.DB{},
+		&stock.DB{},
+		&order.DB{},
 	)
 
 	request := httptest.NewRequest(http.MethodGet, "/health", nil)

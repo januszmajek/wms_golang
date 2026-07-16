@@ -34,7 +34,7 @@ func TestInboundHandler(t *testing.T) {
 
 	t.Run("returns business error", func(t *testing.T) {
 		service, _ := newTestService(t)
-		response := stockRequest(t, http.MethodPost, "/inbounds", `{"product_id":1,"quantity":0}`, NewHandler(service).Inbound)
+		response := stockRequest(t, http.MethodPost, "/inbounds", `{"productId":1,"quantity":0}`, NewHandler(service).Inbound)
 		if response.Code != http.StatusBadRequest {
 			t.Fatalf("wanted bad request, got %d", response.Code)
 		}
@@ -43,7 +43,7 @@ func TestInboundHandler(t *testing.T) {
 	t.Run("returns repository error", func(t *testing.T) {
 		service, mock := newTestService(t)
 		mock.ExpectQuery("SELECT EXISTS").WithArgs(int64(1)).WillReturnError(errors.New("database unavailable"))
-		response := stockRequest(t, http.MethodPost, "/inbounds", `{"product_id":1,"quantity":2}`, NewHandler(service).Inbound)
+		response := stockRequest(t, http.MethodPost, "/inbounds", `{"productId":1,"quantity":2}`, NewHandler(service).Inbound)
 		if response.Code != http.StatusInternalServerError {
 			t.Fatalf("wanted server error, got %d", response.Code)
 		}
@@ -57,8 +57,8 @@ func TestInboundHandler(t *testing.T) {
 		mock.ExpectExec("INSERT INTO stock").WithArgs(int64(1), 2).WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectExec("INSERT INTO inbound_operations").WithArgs(int64(1), 2).WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectCommit()
-		response := stockRequest(t, http.MethodPost, "/inbounds", `{"product_id":1,"quantity":2}`, NewHandler(service).Inbound)
-		if response.Code != http.StatusCreated || !strings.Contains(response.Body.String(), `"quantity_added":2`) {
+		response := stockRequest(t, http.MethodPost, "/inbounds", `{"productId":1,"quantity":2}`, NewHandler(service).Inbound)
+		if response.Code != http.StatusCreated || !strings.Contains(response.Body.String(), `"quantityAdded":2`) {
 			t.Fatalf("unexpected response: %d %s", response.Code, response.Body.String())
 		}
 	})

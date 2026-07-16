@@ -99,11 +99,11 @@ All request and response bodies are JSON. Validation errors normally return HTTP
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Returns `{"status":"ok"}`. |
-| `POST` | `/products` | Creates a product. Required fields: `article_code`, `name`. Returns `201`. |
+| `POST` | `/products` | Creates a product. Required fields: `articleCode`, `name`. Returns `201`. |
 | `GET` | `/products` | Lists products ordered by ID. |
-| `POST` | `/inbounds` | Adds a positive `quantity` to an existing `product_id`. Returns `201`. |
+| `POST` | `/inbounds` | Adds a positive `quantity` to an existing `productId`. Returns `201`. |
 | `GET` | `/stock` | Lists every product and its current quantity. |
-| `POST` | `/orders` | Creates an order with a non-empty `items` array. Each item needs a positive `product_id` and `quantity`. Returns `201` with status `CREATED`. |
+| `POST` | `/orders` | Creates an order with a non-empty `items` array. Each item needs a positive `productId` and `quantity`. Returns `201` with status `CREATED`. |
 | `GET` | `/orders/:id` | Returns an order and its items. The ID must be a positive integer; missing database IDs return `404`. |
 | `POST` | `/orders/:id/ship` | Re-checks stock, decreases it, and ships the order. The ID must be a positive integer. Returns status `SHIPPED`. |
 
@@ -133,7 +133,7 @@ curl http://localhost:8081/stock
 
 ## Business rules
 
-- Product `article_code` values are unique in PostgreSQL. Product names and article codes are trimmed and must be non-empty.
+- Product `articleCode` values are unique in PostgreSQL. Product names and article codes are trimmed and must be non-empty.
 - Inbound quantities must be greater than zero, and the product must exist.
 - Order item quantities must be greater than zero and an order must contain at least one item.
 - Duplicate product IDs in one order are merged before stock is checked. For example, quantities `6` and `6` require 12 units.

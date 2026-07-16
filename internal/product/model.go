@@ -4,12 +4,12 @@ import "time"
 
 type Product struct {
 	ID          int64     `json:"id"`
-	ArticleCode string    `json:"article_code"`
+	ArticleCode string    `json:"articleCode"`
 	Name        string    `json:"name"`
-	CreatedAt   time.Time `json:"created_at"`
+	CreatedAt   time.Time `json:"createdAt"`
 }
 
 type CreateProductRequest struct {
-	ArticleCode string `json:"article_code"`
+	ArticleCode string `json:"articleCode"`
 	Name        string `json:"name"`
 }

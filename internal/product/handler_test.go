@@ -50,7 +50,7 @@ func TestCreateProductHandler(t *testing.T) {
 
 	t.Run("rejects blank fields", func(t *testing.T) {
 		handler, _ := newProductHandler(t)
-		response := productRequest(t, http.MethodPost, `{"article_code":"  ","name":"Chair"}`, handler.Create)
+		response := productRequest(t, http.MethodPost, `{"articleCode":"  ","name":"Chair"}`, handler.Create)
 		if response.Code != http.StatusBadRequest {
 			t.Fatalf("wanted bad request, got %d", response.Code)
 		}
@@ -60,7 +60,7 @@ func TestCreateProductHandler(t *testing.T) {
 		handler, mock := newProductHandler(t)
 		mock.ExpectQuery("INSERT INTO products").WithArgs("CHAIR-1", "Chair").
 			WillReturnError(errors.New("duplicate article code"))
-		response := productRequest(t, http.MethodPost, `{"article_code":"CHAIR-1","name":"Chair"}`, handler.Create)
+		response := productRequest(t, http.MethodPost, `{"articleCode":"CHAIR-1","name":"Chair"}`, handler.Create)
 		if response.Code != http.StatusInternalServerError {
 			t.Fatalf("wanted server error, got %d", response.Code)
 		}
@@ -73,8 +73,8 @@ func TestCreateProductHandler(t *testing.T) {
 			sqlmock.NewRows([]string{"id", "article_code", "name", "created_at"}).
 				AddRow(1, "CHAIR-1", "Chair", createdAt),
 		)
-		response := productRequest(t, http.MethodPost, `{"article_code":" CHAIR-1 ","name":" Chair "}`, handler.Create)
-		if response.Code != http.StatusCreated || !strings.Contains(response.Body.String(), `"article_code":"CHAIR-1"`) {
+		response := productRequest(t, http.MethodPost, `{"articleCode":" CHAIR-1 ","name":" Chair "}`, handler.Create)
+		if response.Code != http.StatusCreated || !strings.Contains(response.Body.String(), `"articleCode":"CHAIR-1"`) {
 			t.Fatalf("unexpected response: %d %s", response.Code, response.Body.String())
 		}
 	})

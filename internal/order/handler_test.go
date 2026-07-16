@@ -39,13 +39,13 @@ func TestCreateHandler(t *testing.T) {
 	}{
 		{name: "bad JSON", body: "{", repo: newFakeOrderRepo(), wantStatus: http.StatusBadRequest},
 		{name: "business error", body: `{ "items": [] }`, repo: newFakeOrderRepo(), wantStatus: http.StatusBadRequest},
-		{name: "repository error", body: `{ "items": [{"product_id": 1, "quantity": 1}] }`, repo: func() *fakeOrderRepo {
+		{name: "repository error", body: `{ "items": [{"productId": 1, "quantity": 1}] }`, repo: func() *fakeOrderRepo {
 			repo := newFakeOrderRepo()
 			repo.stock[1] = 1
 			repo.createErr = errors.New("database failed")
 			return repo
 		}(), wantStatus: http.StatusInternalServerError},
-		{name: "created", body: `{ "items": [{"product_id": 1, "quantity": 1}] }`, repo: func() *fakeOrderRepo {
+		{name: "created", body: `{ "items": [{"productId": 1, "quantity": 1}] }`, repo: func() *fakeOrderRepo {
 			repo := newFakeOrderRepo()
 			repo.stock[1] = 1
 			return repo

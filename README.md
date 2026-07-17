@@ -109,14 +109,17 @@ All request and response bodies are JSON. Validation errors normally return HTTP
 
 Example request bodies:
 
+ POST /products
 ```json
-// POST /products
 {"article_code":"GLASS-001","name":"Glass"}
-
+```
 // POST /inbounds
+```json
 {"product_id":1,"quantity":10}
+```
 
 // POST /orders
+```json
 {"items":[{"product_id":1,"quantity":4}]}
 ```
 
@@ -202,6 +205,51 @@ Create a migration:
 
 ```powershell
 go run github.com/pressly/goose/v3/cmd/goose@latest -dir migrations create <name> sql
+```
+
+## Troubleshooting
+
+### Windows: Port binding error on port 8081
+
+**Symptom**: Application fails to start with error:
+```
+listen tcp :8081: bind: An attempt was made to access a socket in a way forbidden by its access permissions.
+```
+or
+```
+listen tcp :8081: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+```
+
+**Root cause**: 
+1. **First error**: Windows reserves dynamic port ranges for Hyper-V, WSL, and other virtualization services. Port 8081 may fall within a reserved range (typically 7984-8083), preventing applications from binding to it.
+2. **Second error**: Another process is already using port 8081.
+
+**Fix for reserved port range** (requires Administrator privileges):
+
+```powershell
+# Stop WinNAT service
+net stop winnat
+
+# Exclude port 8081 from dynamic range
+netsh int ipv4 add excludedportrange protocol=tcp startport=8081 numberofports=1
+
+# Restart WinNAT service
+net start winnat
+
+# Verify exclusion (port 8081 should appear with asterisk)
+netsh interface ipv4 show excludedportrange protocol=tcp
+```
+
+Port 8081 should now appear in the exclusion list with an asterisk (*). This exclusion persists across reboots.
+
+**Fix for port already in use**:
+
+```powershell
+# Find and stop process using port 8081
+Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess | ForEach-Object { Stop-Process -Id $_ -Force }
+
+# Verify port is free (should return nothing)
+Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue
 ```
 
 ## Out of scope

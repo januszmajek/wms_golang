@@ -19,23 +19,15 @@ Simple Go REST API for small warehouse. Product mgmt, inbound, stock, orders, ou
 
 ## Tech Stack
 
-- **Go** / **Gin** (web framework)
-- **PostgreSQL** (persistent DB) via Podman/Docker
-- **database/sql** & **lib/pq** (driver)
+- **Go** (language)
+- **Gin-Gonic** (web framework, middleware)
+- **PostgreSQL** (persistent DB) via docker on wsl on windows and docker on Omarchy Arch Linux Distro
+- **lib/pgx** (driver)
 - **goose** (migrations)
-- **testing** (stdlib unit tests)
-
----
-
-## Architecture
-
-```text
-HTTP handlers -> Services -> Repositories -> DB
-```
-
-- **Handlers**: Parse JSON, validate format, call service, return HTTP status & JSON.
-- **Services**: Business logic (validate stock, prevent negative stock, order/shipping state). Heavily unit-tested.
-- **Repositories**: SQL operations (CRUD, stock updates, txns).
+- **JSON Schema** (model specification)
+- **https://quicktype.io/** (golang code generation from JSON)
+- **OpenAPI** (API specification)
+- **Zerolog** (logger)
 
 ---
 
@@ -66,6 +58,8 @@ HTTP handlers -> Services -> Repositories -> DB
 
 - `CREATED`: Order saved, stock reserved but not decreased.
 - `SHIPPED`: Order shipped, stock decreased.
+- `CANCELLED`
+- `DELIVERED`: Order is successfully delivered to the customer
 
 ---
 
@@ -84,126 +78,13 @@ CREATE TABLE outbound_operations (id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT 
 
 ## API Endpoints
 
-- **Health Check**: `GET /health` -> `{"status":"ok"}`
 - **Create Product**: `POST /products` `{"sku":"GLASS-001","name":"Glass"}` -> `{"id":1,...}`
 - **List Products**: `GET /products` -> `[{"id":1,...}]`
 - **Inbound**: `POST /inbounds` `{"product_id":1,"quantity":10}` -> `{"product_id":1,"quantity_added":10}`
 - **Stock Report**: `GET /stock` -> `[{"product_id":1,"sku":"GLASS-001","name":"Glass","quantity":10}]`
 - **Create Order**: `POST /orders` `{"items":[{"product_id":1,"quantity":4}]}` -> `{"id":1,"status":"CREATED",...}` (400 if insufficient)
 - **Get Order**: `GET /orders/:id` -> `{"id":1,...}`
-- **Ship Order**: `POST /orders/:id/ship` -> `{"order_id":1,"status":"SHIPPED"}` (errors: already shipped, stock changed)
-
----
-
-## Demo Flow
-
-```bash
-# 1. Create product
-curl -X POST http://localhost:8080/products -H "Content-Type: application/json" -d '{"sku":"GLASS-001","name":"Glass"}'
-
-# 2. Add stock (10)
-curl -X POST http://localhost:8080/inbounds -H "Content-Type: application/json" -d '{"product_id":1,"quantity":10}'
-
-# 3. Check stock
-curl http://localhost:8080/stock
-
-# 4. Create order (4)
-curl -X POST http://localhost:8080/orders -H "Content-Type: application/json" -d '{"items":[{"product_id":1,"quantity":4}]}'
-
-# 5. Ship order (marks SHIPPED, stock decreases from 10 to 6)
-curl -X POST http://localhost:8080/orders/1/ship
-
-# 6. Check stock again
-curl http://localhost:8080/stock
-
-# 7. Try to order > stock (fails)
-curl -X POST http://localhost:8080/orders -H "Content-Type: application/json" -d '{"items":[{"product_id":1,"quantity":20}]}'
-```
-
----
-
-## Setup & Run
-
-1. **Clone**: `git clone <url> && cd mini-wms`
-2. **Start Podman machine**: `podman machine start podman-machine-default`
-3. **Set Podman connection**: `podman system connection default podman-machine-default`
-4. **Start DB container**: `podman start mini_wms_postgres`
-5. **Verify DB is running**: `podman ps`
-6. **Migrate**: `goose -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" up`
-7. **Run**: `go run ./cmd/api` (listens at `http://localhost:8080`)
-
-If the DB container does not exist yet, create it:
-
-```powershell
-podman run -d `
-  --name mini_wms_postgres `
-  -e POSTGRES_USER=postgres `
-  -e POSTGRES_PASSWORD=postgres `
-  -e POSTGRES_DB=mini_wms `
-  -p 5433:5432 `
-  --restart always `
-  docker.io/library/postgres:16
-```
-
-Verify the database connection:
-
-```powershell
-podman exec mini_wms_postgres psql -U postgres -d mini_wms -c "SELECT 1;"
-```
-
-DBeaver connection settings:
-
-| Field | Value |
-|---|---|
-| Host | `localhost` |
-| Port | `5433` |
-| Database | `mini_wms` |
-| Username | `postgres` |
-| Password | `postgres` |
-| SSL | disabled |
-
-After restarting Podman Desktop or the Podman machine, start the database again:
-
-```powershell
-podman machine start podman-machine-default
-podman system connection default podman-machine-default
-podman start mini_wms_postgres
-podman ps
-```
-
-If Podman Desktop does not show the container but `podman ps` does, the CLI machine is still working. Make sure Podman Desktop is connected to the same machine: `podman-machine-default`.
-
----
-
-## Env Variables (`.env.example`)
-
-```env
-APP_PORT=8080
-DATABASE_URL=postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable
-```
-
----
-
-## Migrations (goose)
-
-- **Create**: `goose -dir migrations create <name> sql`
-- **Apply**: `goose -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" up`
-- **Rollback**: `goose -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" down`
-
----
-
-## Testing
-
-- **All**: `go test ./...`
-- **With coverage**: `go test ./... -cover`
-- **HTML Report**: `go test ./... -coverprofile=cov.out && go tool cover -html=cov.out` (req: >50%)
-
----
-
-## Test Cases Covered
-
-- **Stock Service**: Inbound stock increase, reject <=0 quantity, fail if product missing.
-- **Order Service**: Success if stock OK, fail if insufficient stock, reject empty items, reject quantities <=0, sum duplicate items, multiple products validation, shipment stock decrease, shipment state changes to SHIPPED, reject double shipping, fail if stock drops before ship.
+- **Change Order Status**: `POST /orders/:id/<status>` -> `{"order_id":1,"status":"SHIPPED"}` (errors: already shipped, stock changed etc.)
 
 ---
 
@@ -212,25 +93,6 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disabl
 - **Order creation stock validation**: Sum duplicate products in request before checking stock. E.g. request `[{id:1, qty:6}, {id:1, qty:6}]` requires stock >= 12.
 - **Shipment transaction**: Re-check stock during shipment (may change after creation). Wrap in DB txn:
   1. Check status. 2. Check stock. 3. Decrease stock. 4. Update order to SHIPPED. 5. Record outbound operation.
-
----
-
-## Project Structure
-
-```text
-mini-wms/
-  cmd/api/main.go
-  internal/
-    config/config.go
-    db/db.go
-    product/{model,repository,handler}.go
-    stock/{model,repository,service,handler,service_test}.go
-    order/{model,repository,service,handler,service_test}.go
-  migrations/001_init.sql
-  docker-compose.yml
-  .env.example
-  go.mod
-```
 
 ---
 
@@ -245,7 +107,3 @@ Frontend, user accounts, auth, categories, reservations, partial shipments, orde
 Covers inbound stock, orders validation, outbound shipment, inventory report, PostgreSQL persistence, and unit tests with >50% coverage.
 
 ---
-
-## Demo Scenario
-
-Podman Postgres container up -> Run goose migrations -> Start API -> Create product GLASS-001 -> Inbound qty 10 -> Check stock (10) -> Create order qty 4 -> Ship order -> Check stock (6) -> Create order qty 20 (fails) -> Run tests with coverage.

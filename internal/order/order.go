@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Constants
 const StatusCreated = "CREATED"
 const StatusShipped = "SHIPPED"
 
@@ -19,14 +18,14 @@ var (
 	ErrAlreadyShipped    = errors.New("order already shipped")
 )
 
-// Models
 type ItemRequest struct {
 	ProductID int64 `json:"productId"`
 	Quantity  int   `json:"quantity"`
 }
 
 type CreateOrderRequest struct {
-	Items []ItemRequest `json:"items"`
+	Items       []ItemRequest `json:"items"`
+	Description string        `json:"description,omitempty"`
 }
 
 type OrderItem struct {
@@ -35,11 +34,12 @@ type OrderItem struct {
 }
 
 type Order struct {
-	ID        int64       `json:"id"`
-	Status    string      `json:"status"`
-	CreatedAt time.Time   `json:"createdAt"`
-	ShippedAt *time.Time  `json:"shippedAt,omitempty"`
-	Items     []OrderItem `json:"items"`
+	ID          int64       `json:"id"`
+	Status      string      `json:"status"`
+	Description string      `json:"description,omitempty"`
+	CreatedAt   time.Time   `json:"createdAt"`
+	ShippedAt   *time.Time  `json:"shippedAt,omitempty"`
+	Items       []OrderItem `json:"items"`
 }
 
 type ShipResponse struct {
@@ -47,7 +47,6 @@ type ShipResponse struct {
 	Status  string `json:"status"`
 }
 
-// Database stuff
 type DB struct{ db *sql.DB }
 
 func New(database *sql.DB) *DB { return &DB{db: database} }
@@ -61,14 +60,14 @@ func (d *DB) GetStock(productID int64) (int, error) {
 	return qty, err
 }
 
-func (d *DB) CreateOrder(items []OrderItem) (Order, error) {
+func (d *DB) CreateOrder(items []OrderItem, description string) (Order, error) {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return Order{}, err
 	}
 	defer tx.Rollback()
 	var o Order
-	err = tx.QueryRow(`INSERT INTO orders (status) VALUES ($1) RETURNING id,status,created_at,shipped_at`, StatusCreated).Scan(&o.ID, &o.Status, &o.CreatedAt, &o.ShippedAt)
+	err = tx.QueryRow(`INSERT INTO orders (status, description) VALUES ($1, $2) RETURNING id,status,description,created_at,shipped_at`, StatusCreated, description).Scan(&o.ID, &o.Status, &o.Description, &o.CreatedAt, &o.ShippedAt)
 	if err != nil {
 		return Order{}, err
 	}
@@ -87,7 +86,7 @@ func (d *DB) CreateOrder(items []OrderItem) (Order, error) {
 
 func (d *DB) GetOrder(id int64) (Order, error) {
 	var o Order
-	err := d.db.QueryRow(`SELECT id,status,created_at,shipped_at FROM orders WHERE id=$1`, id).Scan(&o.ID, &o.Status, &o.CreatedAt, &o.ShippedAt)
+	err := d.db.QueryRow(`SELECT id,status,description,created_at,shipped_at FROM orders WHERE id=$1`, id).Scan(&o.ID, &o.Status, &o.Description, &o.CreatedAt, &o.ShippedAt)
 	if err != nil {
 		return Order{}, err
 	}
@@ -124,12 +123,14 @@ func (d *DB) ShipOrder(id int64) error {
 	if err != nil {
 		return err
 	}
-	items := []OrderItem{}
+	var items []OrderItem
 	for rows.Next() {
 		var item OrderItem
 		if err := rows.Scan(&item.ProductID, &item.Quantity); err != nil {
-			rows.Close()
-			return err
+			err := rows.Close()
+			if err != nil {
+				return err
+			}
 		}
 		items = append(items, item)
 	}
@@ -162,7 +163,6 @@ func (d *DB) ShipOrder(id int64) error {
 	return tx.Commit()
 }
 
-// HTTP handlers
 func (d *DB) Create(c *gin.Context) {
 	var req CreateOrderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -175,7 +175,6 @@ func (d *DB) Create(c *gin.Context) {
 		return
 	}
 
-	// Merge duplicate product IDs
 	merged := map[int64]int{}
 	for _, item := range req.Items {
 		if item.Quantity <= 0 {
@@ -185,7 +184,6 @@ func (d *DB) Create(c *gin.Context) {
 		merged[item.ProductID] += item.Quantity
 	}
 
-	// Check stock for all items
 	var items []OrderItem
 	for productID, qty := range merged {
 		stock, err := d.GetStock(productID)
@@ -200,8 +198,7 @@ func (d *DB) Create(c *gin.Context) {
 		items = append(items, OrderItem{ProductID: productID, Quantity: qty})
 	}
 
-	// Create the order
-	order, err := d.CreateOrder(items)
+	order, err := d.CreateOrder(items, req.Description)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

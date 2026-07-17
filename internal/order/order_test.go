@@ -13,9 +13,9 @@ import (
 
 func newTestDB(t *testing.T) (*DB, sqlmock.Sqlmock) {
 	t.Helper()
-	db, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 	if err != nil {
-		t.Fatalf("failed to create sqlmock: %v", err)
+		t.Fatalf("failed to create sql mock: %v", err)
 	}
 	t.Cleanup(func() { db.Close() })
 
@@ -42,15 +42,13 @@ func TestCreateHandlerBadJSON(t *testing.T) {
 func TestCreateHandlerSuccess(t *testing.T) {
 	orderDB, mock := newTestDB(t)
 
-	// Mock GetStock
 	mock.ExpectQuery("SELECT quantity FROM stock").WithArgs(int64(1)).
 		WillReturnRows(sqlmock.NewRows([]string{"quantity"}).AddRow(10))
 
-	// Mock Create
 	mock.ExpectBegin()
-	mock.ExpectQuery("INSERT INTO orders").WithArgs(StatusCreated).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "status", "created_at", "shipped_at"}).
-			AddRow(1, StatusCreated, time.Now(), nil))
+	mock.ExpectQuery("INSERT INTO orders").WithArgs(StatusCreated, "").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "status", "description", "created_at", "shipped_at"}).
+			AddRow(1, StatusCreated, "", time.Now(), nil))
 	mock.ExpectExec("INSERT INTO order_items").WithArgs(1, int64(1), 5).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectCommit()
@@ -72,9 +70,9 @@ func TestCreateHandlerSuccess(t *testing.T) {
 func TestGetHandler(t *testing.T) {
 	orderDB, mock := newTestDB(t)
 
-	mock.ExpectQuery("SELECT id,status,created_at,shipped_at FROM orders").WithArgs(int64(5)).
-		WillReturnRows(sqlmock.NewRows([]string{"id", "status", "created_at", "shipped_at"}).
-			AddRow(5, StatusCreated, time.Now(), nil))
+	mock.ExpectQuery("SELECT id,status,description,created_at,shipped_at FROM orders").WithArgs(int64(5)).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "status", "description", "created_at", "shipped_at"}).
+			AddRow(5, StatusCreated, "", time.Now(), nil))
 	mock.ExpectQuery("SELECT product_id, quantity FROM order_items").WithArgs(int64(5)).
 		WillReturnRows(sqlmock.NewRows([]string{"product_id", "quantity"}).
 			AddRow(int64(1), 3))
@@ -95,7 +93,6 @@ func TestGetHandler(t *testing.T) {
 func TestShipHandlerSuccess(t *testing.T) {
 	orderDB, mock := newTestDB(t)
 
-	// Mock Ship transaction
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT status FROM orders").WithArgs(int64(1)).
 		WillReturnRows(sqlmock.NewRows([]string{"status"}).AddRow(StatusCreated))

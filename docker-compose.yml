@@ -1,11 +1,16 @@
 services:
   postgres:
-    image: postgres:16
-    container_name: mini_wms_postgres
+    image: postgres:17
+    container_name: postgres-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: mini_wms
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: "123"
+      POSTGRES_DB: wms_golang_db
     ports:
-      - "5433:5432"
-    restart: unless-stopped
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:
+    external: true

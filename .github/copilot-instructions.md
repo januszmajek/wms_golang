@@ -1,104 +1,71 @@
-1# Copilot Instructions — Mini WMS
+# Copilot Instructions — WMS GOLANG
 
-## Project Overview
+## Project overview
 
-Mini WMS is a Go REST API for a small warehouse. Backend-only (no frontend), no auth. Test with `curl`.
+WMS GOLANG is a Go learning project for a backend-only Warehouse Management System. The repository is currently an initial skeleton: documentation and module directories exist, but WMS behavior, HTTP handlers, persistence, migrations, and tests are not implemented yet.
 
 ## Commands
 
-```bash
-# Run server
+```powershell
+# Run the minimal entry point
 go run ./cmd/api
 
-# Run all tests
+# Run all current Go checks/tests
 go test ./...
 
-# Run a single package's tests
-go test ./internal/order/...
-go test ./internal/stock/...
-
-# Run with coverage (must be >50%)
-go test ./... -cover
-
-# Generate HTML coverage report
-go test ./... -coverprofile=cov.out && go tool cover -html=cov.out
-
-# Start DB
+# Start the local PostgreSQL container for future persistence work
 docker compose up -d
-
-# Apply migrations
-goose -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" up
-
-# Rollback migrations
-goose -dir migrations postgres "postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable" down
-
-# Create a new migration
-goose -dir migrations create <name> sql
 ```
+
+Do not add dependency installation commands unless a selected tool is needed by code or documented project workflow. goose is selected for migrations, but do not add migration commands until migration files and the local invocation convention are documented.
 
 ## Architecture
 
-```
-HTTP handlers -> Services -> Repositories -> DB
-```
+- The system is a modular monolith.
+- Application code belongs under `internal/`.
+- Business capabilities are the primary top-level division.
+- Initial business modules are `catalog`, `inventory`, and `ordering`.
+- `internal/platform` is reserved for genuinely shared technical infrastructure and must not contain business logic.
+- Development should proceed through small backend vertical slices.
+- A vertical slice can include HTTP transport, application behavior, domain rules, persistence, and tests. It does not require a frontend.
 
-Strict layering under `internal/`:
+## Current structure
 
-| Layer | Responsibility |
-|---|---|
-| **handlers** | Parse/validate JSON, call service, return HTTP status + JSON |
-| **services** | Business logic only — no HTTP, no SQL. Unit-tested with mocks |
-| **repositories** | SQL only — CRUD, stock updates, DB transactions |
-
-Each domain (`product`, `stock`, `order`) has its own subdirectory with a `model.go`, `repository.go`, `service.go`, `handler.go`, and `service_test.go`.
-
-## Project Structure
-
-```
+```text
 cmd/api/main.go
-internal/
-  config/config.go
-  db/db.go
-  product/{model,repository,handler}.go
-  stock/{model,repository,service,handler,service_test}.go
-  order/{model,repository,service,handler,service_test}.go
-migrations/001_init.sql
-docker-compose.yml
-.env.example
+internal/catalog/
+internal/inventory/
+internal/ordering/
+internal/platform/
+migrations/
+docs/product/
+docs/architecture/
+docs/packages/
+docs/decisions/
+docs/learning/
 go.mod
 ```
 
-## Key Conventions
+## Dependency and package rules
 
-### Service testing
-- Unit tests live in `service_test.go` within the domain package.
-- Services are tested with mocked repositories (interface-based), not against a real DB.
-- `stock` and `order` are the only domains with services (and tests); `product` has no service layer.
+- Do not create speculative subpackages such as `domain`, `application`, `http`, `postgres`, `repositories`, `services`, `models`, `shared`, `common`, or `utils`.
+- Introduce package boundaries because of present responsibilities, not hypothetical future requirements.
+- Business modules must not depend directly on HTTP frameworks, PostgreSQL drivers, or another module's persistence implementation.
+- `catalog` defines what a product is.
+- `inventory` manages stock and availability.
+- `ordering` owns the order lifecycle.
+- Creating a catalog product must not automatically imply receiving stock.
+- `ordering` should not own inventory quantities.
+- `inventory` should not own product descriptions or the order lifecycle.
 
-### Business rules to enforce in code
-- **Inbound**: quantity must be > 0; product must exist.
-- **Order creation**: validates stock *before* creating. Does NOT decrease stock. Status starts as `CREATED`. Duplicate `product_id` entries in a single request must be summed before checking stock.
-- **Shipment** (`POST /orders/:id/ship`): runs in a DB transaction: check status → re-check stock → decrease stock → update order to `SHIPPED` → record outbound operation. Reject if already `SHIPPED` or stock is now insufficient.
-- Stock quantity is always a non-negative integer (`CHECK (quantity >= 0)` in DB).
-- No partial fulfillment; orders either fully succeed or fail.
+## Tooling status
 
-### Order statuses
-- `CREATED` — stock checked and sufficient, not yet decreased.
-- `SHIPPED` — stock decreased, outbound operation recorded.
+PostgreSQL and migrations are planned. PGX is selected as the PostgreSQL driver, goose is selected as the migration tool, Gin-Gonic is selected for HTTP requests and middleware, and OpenAPI plus JSON Schema are selected for request/message specification and validation.
 
-### Error responses
-- HTTP 400 for business rule violations (insufficient stock, invalid input, already shipped).
-- HTTP 404 for missing resources.
-- HTTP 500 for unexpected DB errors.
+The logging library, repository abstraction, transaction approach, code-generation approach, and detailed OpenAPI/JSON Schema validation workflow have not been selected.
 
-### Environment config
-Loaded from `.env` (see `.env.example`):
-```
-APP_PORT=8080
-DATABASE_URL=postgres://postgres:postgres@localhost:5433/mini_wms?sslmode=disable
-```
+## Tutor and learning context
 
-### Database
-- PostgreSQL via `database/sql` + `lib/pq` driver.
-- Migrations managed with `goose` in `migrations/`.
-- Shipment logic uses a DB transaction (begin/commit/rollback pattern in repository layer).
+- Agent tutor rules live in `.github/skills/golang-tutor/SKILL.md`.
+- Learning project notes live under `docs/learning/`.
+- Use `README.md`, `docs/`, current code, and learning progress as sources of truth before mentoring or changing code.

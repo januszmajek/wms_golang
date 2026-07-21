@@ -50,6 +50,4 @@ func main() {
 	if err != nil {
 		log.Fatalf("Product counter error: %v", err)
 	}
-
-	log.Printf("Number of rows in products: %d", productRowCounter)
 }

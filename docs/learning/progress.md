@@ -6,9 +6,13 @@ This file should record demonstrated learning from work in this repository. Do n
 
 - Repository setup and documentation structure for a Go learning project.
 - Database migrations with goose (creating, applying, and documenting migrations).
-- PostgreSQL table design (primary keys, constraints, data types).
+- PostgreSQL table design (primary keys, constraints, data types, relationships).
 - Querying PostgreSQL with PGX (QueryRow, Scan pattern).
 - Design trade-offs between natural and surrogate keys.
+- Full warehouse schema design (products, inventory, orders domains).
+- Constraint patterns (CHECK, REFERENCES, UNIQUE) for business rule enforcement.
+- Audit trail patterns (created_at, updated_at timestamps).
+- Foreign key relationships and referential integrity.
 
 ## Introduced but not consolidated
 

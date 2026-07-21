@@ -6,6 +6,7 @@
 Goose was installed on WSL using Go. It needs access to the migrations folder and the database connection string. 
 
 In PowerShell, set the DATABASE_URL environment variable before running goose commands:
+
 ```powershell
 $env:DATABASE_URL = "postgres://admin:123@<host>:5432/wms_golang_db?sslmode=disable"
 ```
@@ -34,6 +35,10 @@ To apply all pending migrations:
 ```powershell
 goose -dir migrations postgres "$env:DATABASE_URL" up
 ```
+
+```powershell wsl
+goose -dir migrations postgres "$DATABASE_URL" up
+```lazygit
 
 ### Rollback migrations
 

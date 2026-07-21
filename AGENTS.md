@@ -1,23 +1,9 @@
-# Copilot Instructions — WMS GOLANG
+# Agents instructions: wms_golang
 
 ## Project overview
 
-WMS GOLANG is a Go learning project for a backend-only Warehouse Management System. The repository is currently an initial skeleton: documentation and module directories exist, but WMS behavior, HTTP handlers, persistence, migrations, and tests are not implemented yet.
-
-## Commands
-
-```powershell
-# Run the minimal entry point
-go run ./cmd/api
-
-# Run all current Go checks/tests
-go test ./...
-
-# Start the local PostgreSQL container for future persistence work
-docker compose up -d
-```
-
-Do not add dependency installation commands unless a selected tool is needed by code or documented project workflow. goose is selected for migrations, but do not add migration commands until migration files and the local invocation convention are documented.
+WMS GOLANG is a Go learning project for a backend-only Warehouse Management System. The repository is currently an initial skeleton:
+documentation and module directories exist, but WMS behavior, HTTP handlers, persistence, migrations, and tests are not implemented yet.
 
 ## Architecture
 
@@ -28,23 +14,6 @@ Do not add dependency installation commands unless a selected tool is needed by 
 - `internal/platform` is reserved for genuinely shared technical infrastructure and must not contain business logic.
 - Development should proceed through small backend vertical slices.
 - A vertical slice can include HTTP transport, application behavior, domain rules, persistence, and tests. It does not require a frontend.
-
-## Current structure
-
-```text
-cmd/api/main.go
-internal/catalog/
-internal/inventory/
-internal/ordering/
-internal/platform/
-migrations/
-docs/product/
-docs/architecture/
-docs/packages/
-docs/decisions/
-docs/learning/
-go.mod
-```
 
 ## Dependency and package rules
 
@@ -60,9 +29,13 @@ go.mod
 
 ## Tooling status
 
-PostgreSQL and migrations are planned. PGX is selected as the PostgreSQL driver, goose is selected as the migration tool, Gin-Gonic is selected for HTTP requests and middleware, and OpenAPI plus JSON Schema are selected for request/message specification and validation.
+1. Postgres is chosen as database. 
+2. PGX is selected as the PostgreSQL driver, goose is selected as the migration tool.
+3. Gin-Gonic is selected for HTTP requests and middleware.
+4. OpenAPI plus JSON Schema are selected for request/message specification and validation.
 
-The logging library, repository abstraction, transaction approach, code-generation approach, and detailed OpenAPI/JSON Schema validation workflow have not been selected.
+The logging library, repository abstraction, transaction approach, code-generation approach,
+and detailed OpenAPI/JSON Schema validation workflow have not been selected.
 
 ## Tutor and learning context
 

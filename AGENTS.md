@@ -22,7 +22,7 @@ Do not add dependency installation commands unless a selected tool is needed by 
 ## Architecture
 
 - The system is a modular monolith.
-- Application code belongs under `internal/`.
+- Application code belongs under `internal`.
 - Business capabilities are the primary top-level division.
 - Initial business modules are `catalog`, `inventory`, and `ordering`.
 - `internal/platform` is reserved for genuinely shared technical infrastructure and must not contain business logic.
@@ -67,8 +67,8 @@ The logging library, repository abstraction, transaction approach, code-generati
 ## Tutor and learning context
 
 - Agent tutor rules live in `.github/skills/golang-tutor/SKILL.md`.
-- Learning project notes live under `docs/learning/`.
-- Use `README.md`, `docs/`, current code, and learning progress as sources of truth before mentoring or changing code.
+- Learning project notes live under `docs/learning`.
+- Use `README.md`, `docs`, current code, and learning progress as sources of truth before mentoring or changing code.
 
 ## Communication with the user
 

@@ -39,4 +39,17 @@ func main() {
 	}
 
 	log.Printf("Connected to db: %s", databaseName)
+
+	var productRowCounter int
+
+	err = db.QueryRow(
+		context.Background(),
+		"SELECT COUNT(*) FROM products",
+	).Scan(&productRowCounter)
+
+	if err != nil {
+		log.Fatalf("Product counter error: %v", err)
+	}
+
+	log.Printf("Number of rows in products: %d", productRowCounter)
 }

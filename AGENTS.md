@@ -39,7 +39,7 @@ and detailed OpenAPI/JSON Schema validation workflow have not been selected.
 
 ## Tutor and learning context
 
-- Agent tutor rules live in `.github/skills/golang-tutor/SKILL.md`.
+- Agent tutor rules live in `.agents/skills/golang-tutor/SKILL.md`.
 - Learning project notes live under `docs/learning`.
 - Use `README.md`, `docs`, current code, and learning progress as sources of truth before mentoring or changing code.
 
